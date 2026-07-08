@@ -1,30 +1,53 @@
-services:
-  db:
-    image: postgres:16
+# =============================================================================
+# docker-compose.yml — describes the containers (services) this project runs.
+#
+# Docker Compose lets you start several containers with one command:
+#     docker compose up      (start everything)
+#     docker compose down    (stop and remove the containers)
+# Here we run two: a PostgreSQL database, and Adminer (a web tool to browse it).
+# In YAML, indentation matters (it shows nesting) and '#' starts a comment.
+# =============================================================================
 
+services:                    # the list of containers to run
+  db:                        # our PostgreSQL database service (name: "db")
+    image: postgres:16       # use the official PostgreSQL image, version 16
+
+    # These environment variables configure the database on first startup.
+    # They MUST match the DB_USER / DB_PASSWORD / DB_NAME your db.py connects with.
     environment:
-      POSTGRES_USER: clinic_user
+      POSTGRES_USER: clinic_user       # creates this login user
 
-      POSTGRES_PASSWORD: clinic_123
+      POSTGRES_PASSWORD: clinic_123    # its password (for a real app, keep secrets out of git!)
 
-      POSTGRES_DB: clinic_db
+      POSTGRES_DB: clinic_db           # creates a database with this name
 
+    # Port mapping "host:container". Left = port on YOUR machine, right = port
+    # inside the container. So localhost:5432 on your PC reaches Postgres inside.
     ports:
       - "5432:5432"
 
+    # Volumes = storage that survives container restarts / rebuilds.
     volumes:
+      # Named volume "pgdata" holds the actual database files, so your data is
+      # NOT lost when the container stops. (Declared at the bottom.)
       - pgdata:/var/lib/postgresql/data
 
+      # Maps your local ./sql folder into a special Postgres folder. Any .sql
+      # files there run automatically the FIRST time the DB is created (empty
+      # volume) — that's how 01_/02_/03_*.sql set up the tables and seed data.
       - ./sql:/docker-entrypoint-initdb.d
 
-  adminer:
+  adminer:                   # a lightweight web UI to view/edit the database
     image: adminer
 
     ports:
-      - "8080:8080"
+      - "8080:8080"          # open http://localhost:8080 in a browser to use it
 
+    # depends_on tells Compose to start the db container before adminer.
     depends_on:
       - db
 
+# Top-level declaration of the named volume used above. Docker manages where it
+# is actually stored on disk; you just refer to it by the name "pgdata".
 volumes:
   pgdata:

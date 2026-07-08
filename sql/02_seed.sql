@@ -1,4 +1,14 @@
--- Seed data for the patients table (populate with some test data)
+-- ============================================================================
+-- 02_seed.sql — "seed" data: fills the empty patients table with test rows.
+--
+-- "Seeding" means loading sample/starter data so you have something to look at
+-- while developing. This runs after 01_patients.sql (alphabetical order), so
+-- the table already exists by the time we insert into it.
+-- ============================================================================
+
+-- One INSERT can add MANY rows: list the columns once, then give a
+-- comma-separated tuple of values for each row. Note we do NOT provide
+-- patient_id — it is SERIAL, so PostgreSQL assigns 1, 2, 3, ... automatically.
 INSERT INTO patients (first_name, last_name, date_of_birth, gender, email, phone) VALUES
 ('John', 'Doe', '1990-01-15', 'M', 'john.doe@example.com', '123-456-7890'),
 ('Jane', 'Smith', '1985-07-20', 'F', 'jane.smith@example.com', '098-765-4321'),

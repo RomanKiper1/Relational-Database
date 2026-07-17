@@ -1,6 +1,6 @@
 # requirements file: the Python packages this project needs.
 # Install them all with:  pip install -r requirments.txt
 # ">=" means "this version or newer".
-psycopg2-binary>=2.9    # PostgreSQL driver — lets Python talk to the database (used in db.py)
 customtkinter>=5.2      # modern-looking GUI toolkit (used in main.py)  [FIXED typo: was "customkinter"]
 python-dotenv>=1.0      # loads the .env file so passwords stay out of the code (used in db.py)
+pymongo>=4.6

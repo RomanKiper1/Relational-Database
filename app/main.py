@@ -27,6 +27,7 @@ tabs.pack(padx=10, pady=10, fill="both", expand=True)
 patients_tab = tabs.add("Patients")
 staff_tab = tabs.add("Staff")
 finance_tab = tabs.add("Finance")
+appointments_tab = tabs.add("Appointments")
 
 
 # --- Data loaders: turn database rows into text lines ---------------------
@@ -36,10 +37,11 @@ finance_tab = tabs.add("Finance")
 def load_patients_lines():
     # fetch_all runs the SELECT and gives back a list of dict rows because of
     # RealDictCursor in db.py, so we can read columns by name: row["email"].
-    rows = fetch_all(
-        "SELECT patient_id, first_name, last_name, email FROM patients ORDER BY patient_id"
-    )
+    from app.db import find_all
+
+    rows = find_all("patients", sort=[("patient_id", 1)])
     lines = []
+
     for row in rows:
         # f-string with alignment "mini-language":
         #   {value:>3}   -> right-align in a field 3 chars wide  (nice for ids)
@@ -51,10 +53,9 @@ def load_patients_lines():
 
 
 def load_staff_lines():
-    rows = fetch_all(
-        "SELECT staff_id, first_name, last_name, email, role, specialty FROM staff ORDER BY staff_id"
-    )
+    rows = find_all("staff", sort=[("staff_id", 1)])
     lines = []
+
     for row in rows:
         # Two adjacent string literals on separate lines are automatically
         # joined by Python into one string (no '+' needed).
@@ -63,6 +64,30 @@ def load_staff_lines():
         line = (
             f"{row['staff_id']:>3}  {row['first_name']} {row['last_name']:<12}  "
             f"{row['role']:<15}  {(row['specialty'] or '-'):<12}  {row['email'] or ''}\n"
+        )
+        lines.append(line)
+    return lines
+
+def load_appoinments_lines():
+    rows = find_all(
+        "appointments",
+        sort=[("appointment_date", 1), ("appointment_time", 1)],
+    )
+    
+    lines = [
+        f"{'ID': <5} {'Pat': <5} {'Doc':<12} {'Date':<12} {'Time':<10} {'Type':<14} Status\n",
+        "-" * 70 + "\n",
+    ]
+    
+    for row in rows:
+        line = (
+            f"{row['appointment_id']:<5}"
+            f"{row['patient_id']:<5}"
+            f"{row['staff_id']:<5}"
+            f"{str(row['appointment_date']):<12}"
+            f"{str(row['appointment_time']):<10}"
+            f"{row['appointment_type']:<14}"
+            f"{row['appointment_status']}\n"
         )
         lines.append(line)
     return lines
@@ -115,12 +140,14 @@ def add_patient_dialog(parent, on_saved):
         # INSERT the new patient. The %s are PLACEHOLDERS, not string formatting:
         # psycopg2 safely substitutes the tuple values (first, last, email),
         # which prevents SQL injection and handles types/NULL correctly.
-        execute(
-            "INSERT INTO patients (first_name, last_name, email) VALUES (%s, %s, %s)",
-            (first, last, email),
-        )
-        dialog.destroy()   # close the pop-up
-        on_saved()         # tell the caller to refresh the patient list
+        from app.db import insert_one, next_id
+
+        insert_one("patients", {
+            "patient_id": next_id("patients", "patient_id"),
+            "first_name": first,
+            "last_name": last,
+            "email": email,
+})
 
     # `command=save` connects the button click to the save() function above.
     ctk.CTkButton(dialog, text="Save", command=save).pack(pady=15)
@@ -161,6 +188,7 @@ def make_tab(parent, load_fn):
     refresh()   # load data once immediately so the tab isn't empty on open
 
 
+
 # --- Patients tab builder (adds an extra "Add Patient" button) ------------
 # Almost the same as make_tab, but with a second button. (In a bigger project
 # you'd merge these two into one function to avoid duplication.)
@@ -198,6 +226,7 @@ def make_patients_tab(parent, load_fn):
 make_patients_tab(patients_tab, load_patients_lines)  # patients tab has Add button
 make_tab(staff_tab, load_staff_lines)                 # staff tab is read-only
 make_tab(finance_tab, load_finance_lines)             # finance tab shows placeholder text
+make_tab(appointments_tab, load_appoinments_lines)
 
 # Start the GUI event loop. This line BLOCKS (keeps running) until the window
 # is closed, listening for clicks, key presses, etc. Nothing after it runs
